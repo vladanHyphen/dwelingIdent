@@ -1,0 +1,9 @@
+streamlit
+mercantile
+requests
+pillow
+numpy
+pandas
+pyproj
+inference-sdk
+xlsxwriter
