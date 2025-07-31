@@ -2,3 +2,5 @@ libgdal-dev
 libgl1-mesa-glx
 libsm6
 libxext6
+libxrender-dev
+libice6
