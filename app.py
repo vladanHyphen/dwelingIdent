@@ -28,7 +28,7 @@ max_lat = col2.number_input("Max Latitude (top)", value=-25.715, format="%.6f")
 zoom = st.slider("Zoom Level (higher = sharper, smaller area, default 18)", 15, 20, 18)
 
 # ---- ROBOFLOW SETTINGS ----
-ROBOFLOW_API_KEY = "rf_pO8HKBnumvT4TqSlaibulaIEuit2"
+ROBOFLOW_API_KEY = "6bkg1HjCQc6QPtEDWj1p"
 ROBOFLOW_PROJECT = "roof-mws17"
 ROBOFLOW_VERSION = 1
 
