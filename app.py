@@ -9,7 +9,7 @@ from pyproj import Transformer
 from inference_sdk import InferenceHTTPClient
 
 # --- ROBOFLOW SETTINGS: PUT YOUR KEY HERE ---
-ROBOFLOW_API_KEY = "rf_pO8HKBnumvT4TqSlaibulaIEuit2"  # <--- PUT YOUR API KEY HERE
+ROBOFLOW_API_KEY = "6bkg1HjCQc6QPtEDWj1p"  # <--- PUT YOUR API KEY HERE
 MODEL_ID = "vladan-dltgb/roof-mws17/1"
 
 st.set_page_config(page_title="Automated Roof Detection from Satellite Map", layout="wide")
