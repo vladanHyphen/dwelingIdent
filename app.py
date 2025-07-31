@@ -7,6 +7,7 @@ import cv2
 import pandas as pd
 import io
 from pyproj import Transformer
+import base64
 
 st.set_page_config(page_title="Automated Roof Detection from Satellite Map", layout="wide")
 
@@ -106,13 +107,18 @@ if st.button("Download Map and Detect Buildings"):
         st.image(mosaic, caption="Downloaded Map", use_container_width=True)
         st.success("Map downloaded. Sending to Roboflow for building detection...")
 
-        # ---- ROBOFLOW DETECTION ----
+        # ---- ROBOFLOW DETECTION (base64 JSON post) ----
         mosaic_io = io.BytesIO()
         mosaic.save(mosaic_io, format="JPEG")
-        mosaic_io.seek(0)
+        mosaic_bytes = mosaic_io.getvalue()
+        mosaic_b64 = base64.b64encode(mosaic_bytes).decode("utf-8")
+
+        headers = {"Content-Type": "application/json"}
+        payload = {"image": mosaic_b64}
         response = requests.post(
             ROBOFLOW_MODEL_URL,
-            files={"file": ("mosaic.jpg", mosaic_io, "image/jpeg")}
+            headers=headers,
+            json=payload,
         )
 
         if response.status_code != 200:
