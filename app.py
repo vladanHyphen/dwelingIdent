@@ -168,4 +168,3 @@ if st.button("Download Map and Detect Buildings"):
         st.error(f"An unexpected error occurred: {e}")
         import traceback
         st.text(traceback.format_exc())
-
