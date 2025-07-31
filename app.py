@@ -28,7 +28,7 @@ max_lat = col2.number_input("Max Latitude (top)", value=-25.715, format="%.6f")
 zoom = st.slider("Zoom Level (higher = sharper, smaller area, default 18)", 15, 20, 18)
 
 # ---- ROBOFLOW SETTINGS ----
-ROBOFLOW_API_KEY = "rf_pO8HKBnumvT4TqSlaibulaIEuit2"  # For Streamlit Cloud, move to secrets before sharing!
+ROBOFLOW_API_KEY = "rf_pO8HKBnumvT4TqSlaibulaIEuit2"  # For Streamlit Cloud, move to secrets for security!
 ROBOFLOW_MODEL_URL = f"https://infer.roboflow.com/spacenet/buildings-2pbzy/5?api_key={ROBOFLOW_API_KEY}"
 
 if st.button("Download Map and Detect Buildings"):
@@ -107,8 +107,7 @@ if st.button("Download Map and Detect Buildings"):
         # ---- ROBOFLOW DETECTION (base64 JSON post) ----
         mosaic_io = io.BytesIO()
         mosaic.save(mosaic_io, format="JPEG")
-        mosaic_bytes = mosaic_io.getvalue()
-        mosaic_b64 = base64.b64encode(mosaic_bytes).decode("utf-8")
+        mosaic_b64 = base64.b64encode(mosaic_io.getvalue()).decode("utf-8")
 
         headers = {"Content-Type": "application/json"}
         payload = {"image": mosaic_b64}
@@ -187,4 +186,5 @@ if st.button("Download Map and Detect Buildings"):
         st.error(f"An unexpected error occurred: {e}")
         import traceback
         st.text(traceback.format_exc())
+
 
