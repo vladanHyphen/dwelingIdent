@@ -7,3 +7,4 @@ pandas
 pyproj
 xlsxwriter
 inference-sdk
+opencv-python-headless
