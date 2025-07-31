@@ -2,9 +2,8 @@ streamlit
 numpy
 pandas
 pillow
-opencv-python
+opencv-python==4.7.0.72
 requests
 mercantile
 pyproj
 xlsxwriter
-
