@@ -1,9 +1,11 @@
 streamlit
 mercantile
 requests
-Pillow
+pillow
+numpy
 pandas
 pyproj
-inference-sdk
 xlsxwriter
 opencv-python-headless
+inference-sdk
+supervision
