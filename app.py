@@ -1,17 +1,20 @@
 import streamlit as st
 import mercantile
 import requests
-from PIL import Image
+from PIL import Image, ImageDraw
 import numpy as np
-import cv2
 import pandas as pd
 import io
 from pyproj import Transformer
-from roboflow import Roboflow
+from inference_sdk import InferenceHTTPClient
+
+# --- ROBOFLOW SETTINGS: PUT YOUR KEY HERE ---
+ROBOFLOW_API_KEY = "6bkg1HjCQc6QPtEDWj1p"  # <--- PUT YOUR API KEY HERE
+MODEL_ID = "vladan-dltgb/roof-mws17/1"
 
 st.set_page_config(page_title="Automated Roof Detection from Satellite Map", layout="wide")
 
-st.title("Satellite Roof Detector — Roboflow SDK Version")
+st.title("Satellite Roof Detector — Roboflow Inference SDK")
 st.markdown("""
 1. Enter the bounding box for your area of interest (in WGS84 lat/lon).
 2. Download a high-resolution satellite map patch (Esri World Imagery).
@@ -26,11 +29,6 @@ max_lon = col2.number_input("Max Longitude (right)", value=28.257, format="%.6f"
 min_lat = col1.number_input("Min Latitude (bottom)", value=-25.718, format="%.6f")
 max_lat = col2.number_input("Max Latitude (top)", value=-25.715, format="%.6f")
 zoom = st.slider("Zoom Level (higher = sharper, smaller area, default 18)", 15, 20, 18)
-
-# ---- ROBOFLOW SETTINGS ----
-ROBOFLOW_API_KEY = "6bkg1HjCQc6QPtEDWj1p"
-ROBOFLOW_PROJECT = "roof-mws17"
-ROBOFLOW_VERSION = 1
 
 if st.button("Download Map and Detect Buildings"):
     if min_lat >= max_lat or min_lon >= max_lon:
@@ -105,25 +103,24 @@ if st.button("Download Map and Detect Buildings"):
         st.image(mosaic, caption="Downloaded Map", use_container_width=True)
         st.success("Map downloaded. Sending to Roboflow for building detection...")
 
-        # ---- ROBOFLOW DETECTION (SDK, in-memory PIL image) ----
-        img_np = np.array(mosaic)
-        img_bgr = cv2.cvtColor(img_np, cv2.COLOR_RGB2BGR)
+        # ---- ROBOFLOW DETECTION (Inference SDK, in-memory PIL image) ----
+        CLIENT = InferenceHTTPClient(
+            api_url="https://infer.roboflow.com",
+            api_key=ROBOFLOW_API_KEY
+        )
 
-        rf = Roboflow(api_key=ROBOFLOW_API_KEY)
-        project = rf.workspace().project(ROBOFLOW_PROJECT)
-        model = project.version(ROBOFLOW_VERSION).model
-
-        result = model.predict(img_bgr, confidence=40, overlap=30).json()
+        result = CLIENT.infer(mosaic, model_id=MODEL_ID)
         predictions = result.get("predictions", [])
 
-        # Overlay detections
+        # Draw detections on the PIL image
+        draw = ImageDraw.Draw(mosaic)
         for pred in predictions:
             x, y, w, h = int(pred["x"]), int(pred["y"]), int(pred["width"]), int(pred["height"])
-            cv2.rectangle(img_bgr, (x - w // 2, y - h // 2), (x + w // 2, y + h // 2), (0, 255, 0), 2)
-            cv2.putText(img_bgr, pred["class"], (x - w // 2, y - h // 2 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0,255,0), 2)
+            box = [x - w // 2, y - h // 2, x + w // 2, y + h // 2]
+            draw.rectangle(box, outline="green", width=3)
+            draw.text((box[0], box[1] - 10), pred["class"], fill="green")
 
-        img_rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
-        st.image(img_rgb, caption="Buildings detected by Roboflow", use_container_width=True)
+        st.image(mosaic, caption="Buildings detected by Roboflow", use_container_width=True)
 
         # ---- Convert detections to coordinates ----
         transformer_back = Transformer.from_crs("EPSG:3857", "EPSG:4326", always_xy=True)
