@@ -6,4 +6,4 @@ numpy
 pandas
 pyproj
 xlsxwriter
-inference
+inference-sdk
