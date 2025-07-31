@@ -139,7 +139,7 @@ if st.button("Download Map and Detect Roofs"):
         data=output,
         file_name="roof_centroids_lonlat.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    )
+    ) 
 
     st.success("Done! Download your Excel above.")
 
