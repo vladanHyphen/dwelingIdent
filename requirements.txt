@@ -3,8 +3,7 @@ mercantile
 requests
 pillow
 numpy
-opencv-python-headless
 pandas
 pyproj
 xlsxwriter
-roboflow
+inference
