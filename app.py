@@ -28,12 +28,9 @@ max_lat = col2.number_input("Max Latitude (top)", value=-25.715, format="%.6f")
 zoom = st.slider("Zoom Level (higher = sharper, smaller area, default 18)", 15, 20, 18)
 
 # ---- ROBOFLOW SETTINGS ----
-# Use your API key securely via Streamlit secrets
-ROBOFLOW_API_KEY = st.secrets["ROBOFLOW_API_KEY"] if "ROBOFLOW_API_KEY" in st.secrets else "YOUR_ROBOFLOW_API_KEY"
-ROBOFLOW_MODEL_PATH = "spacenet/buildings-2pbzy"   # Change to your model/project
-ROBOFLOW_MODEL_VERSION = 5                         # Change if you use a different version
-# IMPORTANT: '/model/' is now included in the URL as required!
-ROBOFLOW_MODEL_URL = f"https://infer.roboflow.com/model/{ROBOFLOW_MODEL_PATH}/{ROBOFLOW_MODEL_VERSION}?api_key={ROBOFLOW_API_KEY}"
+# For production/deployment, use: ROBOFLOW_API_KEY = st.secrets["ROBOFLOW_API_KEY"]
+ROBOFLOW_API_KEY = "rf_pO8HKBnumvT4TqSlaibulaIEuit2"  # <--- Your real API key here (remove before publishing!)
+ROBOFLOW_MODEL_URL = f"https://infer.roboflow.com/spacenet/buildings-2pbzy/5?api_key={ROBOFLOW_API_KEY}"
 
 if st.button("Download Map and Detect Buildings"):
     if min_lat >= max_lat or min_lon >= max_lon:
