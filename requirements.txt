@@ -1,9 +1,11 @@
 streamlit
+torch
+torchvision
 numpy
-pandas
-pillow
 opencv-python-headless
-requests
+pillow
+pandas
 mercantile
+requests
 pyproj
 xlsxwriter
