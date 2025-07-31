@@ -6,6 +6,7 @@ import numpy as np
 import cv2
 import pandas as pd
 import io
+from pyproj import Transformer
 
 st.set_page_config(page_title="Automated Roof Detection from Satellite Map", layout="wide")
 
@@ -46,13 +47,12 @@ if st.button("Download Map and Detect Roofs"):
         rows = max([t.y for t in tiles]) - min([t.y for t in tiles]) + 1
 
         # --- LIMIT MOSAIC SIZE ---
-        MAX_PIXELS = 60_000_000  # Adjust as needed (e.g. 60 million pixels)
+        MAX_PIXELS = 60_000_000
         mosaic_width = cols * tile_size
         mosaic_height = rows * tile_size
         total_pixels = mosaic_width * mosaic_height
         if total_pixels > MAX_PIXELS:
-            st.error(f"The selected area at this zoom is too large ({total_pixels:,} pixels). "
-                     "Please choose a smaller area or lower zoom.")
+            st.error(f"The selected area at this zoom is too large ({total_pixels:,} pixels). Please choose a smaller area or lower zoom.")
             st.stop()
 
         mosaic = Image.new('RGB', (mosaic_width, mosaic_height))
@@ -77,15 +77,15 @@ if st.button("Download Map and Detect Roofs"):
 
         # Optionally, crop to precise AOI
         try:
-            from pyproj import Transformer
             bbox_ul = mercantile.xy_bounds(mercantile.Tile(min_x, min_y, zoom))
             bbox_lr = mercantile.xy_bounds(mercantile.Tile(min_x+cols-1, min_y+rows-1, zoom))
 
             def lonlat_to_pixel(lon, lat, mosaic_w, mosaic_h):
                 transformer = Transformer.from_crs("EPSG:4326", "EPSG:3857", always_xy=True)
                 x, y = transformer.transform(lon, lat)
-                x0, y0 = bbox_ul.left, bbox_lr.top
-                x1, y1 = bbox_lr.right, bbox_ul.bottom
+                # Map projected coordinates to pixel coordinates in the mosaic
+                x0, y0 = bbox_ul.left, bbox_lr.top  # Upper left (min_x, min_y)
+                x1, y1 = bbox_lr.right, bbox_ul.bottom  # Lower right (max_x, max_y)
                 px = int((x - x0) / (x1 - x0) * mosaic_w)
                 py = int((y - y0) / (y1 - y0) * mosaic_h)
                 return px, py
@@ -94,7 +94,7 @@ if st.button("Download Map and Detect Roofs"):
             px1, py1 = lonlat_to_pixel(max_lon, min_lat, mosaic.width, mosaic.height)
             px_left, px_right = min(px0, px1), max(px0, px1)
             py_top, py_bottom = min(py0, py1), max(py0, py1)
-            # Make sure the crop is within bounds
+            # Crop within bounds
             px_left = max(0, px_left)
             py_top = max(0, py_top)
             px_right = min(mosaic.width, px_right)
@@ -130,7 +130,10 @@ if st.button("Download Map and Detect Roofs"):
                     cv2.circle(overlay_result, (cx, cy), 8, (0,255,0), -1)  # green dot
 
         num_dwellings = len(centroids)
-        st.success(f"Detected {num_dwellings} dwellings (green dots)")
+        if num_dwellings == 0:
+            st.warning("No roofs detected. Try a different area or adjust your bounding box.")
+        else:
+            st.success(f"Detected {num_dwellings} dwellings (green dots)")
         st.image(overlay_result, caption="Detected dwellings (green dots)", use_container_width=True)
 
         # ---- Calculate coordinates for each centroid ----
@@ -156,20 +159,22 @@ if st.button("Download Map and Detect Roofs"):
             }
             for idx, (cx, cy) in enumerate(centroids)
         ])
+        if len(df) > 0:
+            st.dataframe(df.head(10))
 
-        output = io.BytesIO()
-        with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-            df.to_excel(writer, index=False)
-        output.seek(0)
+            output = io.BytesIO()
+            with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+                df.to_excel(writer, index=False)
+            output.seek(0)
 
-        st.download_button(
-            label="Download Excel with Dwelling Coordinates (Lon/Lat)",
-            data=output,
-            file_name="roof_centroids_lonlat.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        )
+            st.download_button(
+                label="Download Excel with Dwelling Coordinates (Lon/Lat)",
+                data=output,
+                file_name="roof_centroids_lonlat.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
 
-        st.success("Done! Download your Excel above.")
+            st.success("Done! Download your Excel above.")
 
     except Exception as e:
         st.error(f"An unexpected error occurred: {e}")
