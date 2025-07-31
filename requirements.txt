@@ -6,6 +6,4 @@ numpy
 pandas
 pyproj
 xlsxwriter
-opencv-python-headless
 inference-sdk
-supervision
