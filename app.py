@@ -45,7 +45,17 @@ if st.button("Download Map and Detect Roofs"):
         cols = max([t.x for t in tiles]) - min([t.x for t in tiles]) + 1
         rows = max([t.y for t in tiles]) - min([t.y for t in tiles]) + 1
 
-        mosaic = Image.new('RGB', (cols * tile_size, rows * tile_size))
+        # --- LIMIT MOSAIC SIZE ---
+        MAX_PIXELS = 60_000_000  # Adjust as needed (e.g. 60 million pixels)
+        mosaic_width = cols * tile_size
+        mosaic_height = rows * tile_size
+        total_pixels = mosaic_width * mosaic_height
+        if total_pixels > MAX_PIXELS:
+            st.error(f"The selected area at this zoom is too large ({total_pixels:,} pixels). "
+                     "Please choose a smaller area or lower zoom.")
+            st.stop()
+
+        mosaic = Image.new('RGB', (mosaic_width, mosaic_height))
         min_x, min_y = min([t.x for t in tiles]), min([t.y for t in tiles])
 
         failed_tiles = 0
