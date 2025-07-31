@@ -8,18 +8,13 @@ import pandas as pd
 import io
 from pyproj import Transformer
 
-# Deep learning imports
-import torch
-from torchvision import transforms
-from torchvision.models.segmentation import deeplabv3_resnet50
-
 st.set_page_config(page_title="Automated Roof Detection from Satellite Map", layout="wide")
 
-st.title("Satellite Roof Detector — DeepLabV3 Model (Experimental)")
+st.title("Satellite Roof Detector — Roboflow API Demo")
 st.markdown("""
 1. Enter the bounding box for your area of interest (in WGS84 lat/lon).
 2. The app will download a high-resolution satellite map patch (Esri World Imagery).
-3. Roof/building detection is performed using DeepLabV3.
+3. Building detection is performed using Roboflow's hosted API.
 4. Download the resulting Excel with real-world coordinates.
 """)
 
@@ -31,13 +26,14 @@ min_lat = col1.number_input("Min Latitude (bottom)", value=-25.718, format="%.6f
 max_lat = col2.number_input("Max Latitude (top)", value=-25.715, format="%.6f")
 zoom = st.slider("Zoom Level (higher = sharper, smaller area, default 18)", 15, 20, 18)
 
-@st.cache_resource
-def load_model():
-    model = deeplabv3_resnet50(pretrained=True)
-    model.eval()
-    return model
+# ---- ROBOFLOW SETTINGS ----
+# Edit these with your Roboflow model info and key!
+ROBOFLOW_API_KEY = st.secrets["ROBOFLOW_API_KEY"] if "ROBOFLOW_API_KEY" in st.secrets else "YOUR_ROBOFLOW_API_KEY"
+ROBOFLOW_MODEL_PATH = "spacenet/buildings-2pbzy"   # or your Roboflow Universe project
+ROBOFLOW_MODEL_VERSION = 5                         # or your chosen version
+ROBOFLOW_MODEL_URL = f"https://infer.roboflow.com/{ROBOFLOW_MODEL_PATH}/{ROBOFLOW_MODEL_VERSION}?api_key={ROBOFLOW_API_KEY}"
 
-if st.button("Download Map and Detect Roofs"):
+if st.button("Download Map and Detect Buildings"):
     if min_lat >= max_lat or min_lon >= max_lon:
         st.error("Error: Min Latitude/Longitude must be less than Max Latitude/Longitude.")
         st.stop()
@@ -108,41 +104,45 @@ if st.button("Download Map and Detect Roofs"):
             st.warning(f"Optional cropping skipped (pyproj error): {e}. Map covers the bounding box.")
 
         st.image(mosaic, caption="Downloaded Map", use_container_width=True)
-        st.success("Map downloaded. Detecting roofs (buildings)...")
+        st.success("Map downloaded. Sending to Roboflow for building detection...")
 
-        # ---- DeepLabV3 Roof/Building Detection ----
-        model = load_model()
-        img_pil = mosaic.convert("RGB")
-        preprocess = transforms.Compose([
-            transforms.Resize((512, 512)),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-        ])
-        input_tensor = preprocess(img_pil).unsqueeze(0)
-        with torch.no_grad():
-            output = model(input_tensor)["out"][0]
-            predicted = output.argmax(0).cpu().numpy()
-        building_mask = (predicted == 11).astype(np.uint8) * 255
-        building_mask = cv2.resize(building_mask, img_pil.size, interpolation=cv2.INTER_NEAREST)
-        contours, _ = cv2.findContours(building_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        overlay_result = np.array(img_pil)
+        # ---- ROBOFLOW DETECTION ----
+        mosaic_io = io.BytesIO()
+        mosaic.save(mosaic_io, format="JPEG")
+        mosaic_io.seek(0)
+        response = requests.post(
+            ROBOFLOW_MODEL_URL,
+            files={"file": ("mosaic.jpg", mosaic_io, "image/jpeg")}
+        )
+
+        if response.status_code != 200:
+            st.error(f"Roboflow API error: {response.status_code} {response.text}")
+            st.stop()
+        result = response.json()
+
+        overlay_result = np.array(mosaic.convert("RGB"))
         centroids = []
-        for cnt in contours:
-            area = cv2.contourArea(cnt)
-            if area > 50:
-                M = cv2.moments(cnt)
-                if M['m00'] != 0:
-                    cx = int(M['m10'] / M['m00'])
-                    cy = int(M['m01'] / M['m00'])
+        polygons = []
+        if "predictions" in result:
+            for idx, pred in enumerate(result["predictions"]):
+                # Draw polygon outline if available
+                if "points" in pred and len(pred["points"]) >= 3:
+                    pts = np.array([[int(p[0]), int(p[1])] for p in pred["points"]], np.int32)
+                    pts = pts.reshape((-1,1,2))
+                    polygons.append(pts)
+                    cv2.polylines(overlay_result, [pts], True, (255,0,0), 2)
+                # Draw centroid dot
+                if "x" in pred and "y" in pred:
+                    cx, cy = int(pred["x"]), int(pred["y"])
                     centroids.append((cx, cy))
                     cv2.circle(overlay_result, (cx, cy), 8, (0,255,0), -1)
 
-        num_dwellings = len(centroids)
-        if num_dwellings == 0:
-            st.warning("No buildings detected. Try a different area or adjust your bounding box.")
+        num_buildings = len(centroids)
+        if num_buildings == 0:
+            st.warning("No buildings detected by Roboflow in this area.")
         else:
-            st.success(f"Detected {num_dwellings} buildings (green dots)")
-        st.image(overlay_result, caption="Detected buildings (green dots)", use_container_width=True)
+            st.success(f"Roboflow detected {num_buildings} buildings (green dots).")
+        st.image(overlay_result, caption="Buildings detected by Roboflow (green dots, blue outlines)", use_container_width=True)
 
         # ---- Calculate coordinates for each centroid ----
         transformer_back = Transformer.from_crs("EPSG:3857", "EPSG:4326", always_xy=True)
@@ -157,7 +157,7 @@ if st.button("Download Map and Detect Roofs"):
 
         df = pd.DataFrame([
             {
-                'Dwelling_ID': idx+1,
+                'Building_ID': idx+1,
                 'X_pixel': cx,
                 'Y_pixel': cy,
                 'Longitude': pixel_to_lonlat(cx, cy)[0],
