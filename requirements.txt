@@ -1,9 +1,9 @@
 streamlit
 mercantile
 requests
-pillow
-numpy
+Pillow
 pandas
 pyproj
-xlsxwriter
 inference-sdk
+xlsxwriter
+opencv-python-headless
