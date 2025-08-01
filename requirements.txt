@@ -1,4 +1,4 @@
-sstreamlit
+streamlit
 mercantile
 requests
 Pillow
