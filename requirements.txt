@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 sstreamlit
 mercantile
 requests
@@ -7,3 +8,14 @@ pandas
 pyproj
 inference-sdk
 opencv-python
+=======
+streamlit
+mercantile
+requests
+pillow
+numpy
+pandas
+pyproj
+inference-sdk
+xlsxwriter
+>>>>>>> 37bee69a6470c96062585b477fca94780f637ab9
