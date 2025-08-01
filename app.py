@@ -112,7 +112,7 @@ if st.button("Download Map and Detect Buildings"):
             api_key=ROBOFLOW_API_KEY
         )
 
-        result = CLIENT.infer(mosaic_bytes, model_id=MODEL_ID)
+        result = CLIENT.infer(mosaic_bytes.getvalue(), model_id=MODEL_ID)
         predictions = result.get("predictions", [])
 
         # Overlay detections on the image using PIL
