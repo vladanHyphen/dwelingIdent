@@ -7,11 +7,10 @@ import pandas as pd
 import io
 from pyproj import Transformer
 from inference_sdk import InferenceHTTPClient
-import tempfile
 
 # ---- ROBOFLOW SETTINGS ----
 ROBOFLOW_API_KEY = "6bkg1HjCQc6QPtEDWj1p"
-MODEL_ID = "roof-mws17/1"  # Change this if your model/version is different
+MODEL_ID = "roof-mws17/1"  # Make sure this matches your project/version
 
 st.set_page_config(page_title="Automated Roof Detection from Satellite Map", layout="wide")
 st.title("Satellite Roof Detector — Roboflow Inference SDK")
@@ -104,20 +103,19 @@ if st.button("Download Map and Detect Buildings"):
         st.success("Map downloaded. Sending to Roboflow for building detection...")
 
         # --- ROBOFLOW INFERENCE: use in-memory image, no disk writes ---
-        # Save to temp file
-        with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp:
-            mosaic.save(tmp.name, format="PNG")
-            temp_image_path = tmp.name
+        mosaic_bytes = io.BytesIO()
+        mosaic.save(mosaic_bytes, format='PNG')
+        mosaic_bytes.seek(0)
 
-        # --- Run Roboflow detection ---
         CLIENT = InferenceHTTPClient(
             api_url="https://serverless.roboflow.com",
             api_key=ROBOFLOW_API_KEY
         )
-        result = CLIENT.infer(temp_image_path, model_id=MODEL_ID)
+
+        result = CLIENT.infer(mosaic_bytes, model_id=MODEL_ID)
         predictions = result.get("predictions", [])
 
-        # Overlay detections (if any) on the image using PIL
+        # Overlay detections on the image using PIL
         mosaic_draw = mosaic.copy()
         try:
             from PIL import ImageDraw
@@ -132,7 +130,7 @@ if st.button("Download Map and Detect Buildings"):
                 right = x + w // 2
                 bottom = y + h // 2
                 draw.rectangle([left, top, right, bottom], outline="green", width=3)
-                draw.text((left, top - 10), pred.get("class", "roof"), fill="green")
+                draw.text((left, top - 10), pred.get("class", ""), fill="green")
             st.image(mosaic_draw, caption="Buildings detected by Roboflow", use_container_width=True)
         except Exception as e:
             st.warning(f"Could not overlay detections: {e}")
