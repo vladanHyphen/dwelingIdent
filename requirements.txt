@@ -1,10 +1,9 @@
 streamlit
 mercantile
 requests
-Pillow
+pillow
 numpy
 pandas
 pyproj
 inference-sdk
-opencv-python
 xlsxwriter
