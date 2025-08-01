@@ -21,11 +21,11 @@ RUN pip install -r requirements.txt
 # Copy rest of the code
 COPY . .
 
-# Expose Streamlit port
-EXPOSE 8501
+# Expose Cloud Run port
+EXPOSE 8080
 
 # Streamlit-specific config (optional: avoid using browser, etc.)
 ENV STREAMLIT_BROWSER_GATHER_USAGE_STATS=false
 
-# Set Streamlit to listen on all interfaces and disable sharing warning
-CMD ["streamlit", "run", "app.py", "--server.port=8501", "--server.address=0.0.0.0"]
+# Set Streamlit to listen on all interfaces and Cloud Run port
+CMD ["streamlit", "run", "app.py", "--server.port=8080", "--server.address=
