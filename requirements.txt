@@ -1,0 +1,9 @@
+sstreamlit
+mercantile
+requests
+pillow
+numpy
+pandas
+pyproj
+inference-sdk
+opencv-python
