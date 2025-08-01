@@ -102,17 +102,20 @@ if st.button("Download Map and Detect Buildings"):
         st.image(mosaic, caption="Downloaded Map", use_container_width=True)
         st.success("Map downloaded. Sending to Roboflow for building detection...")
 
-        # --- ROBOFLOW INFERENCE: use in-memory image, no disk writes ---
-        mosaic_bytes = io.BytesIO()
-        mosaic.save(mosaic_bytes, format='PNG')
-        mosaic_bytes.seek(0)
+        import tempfile
+
+        # --- ROBOFLOW INFERENCE: save image to a temporary file ---
+        with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp_file:
+            mosaic.save(tmp_file, format='PNG')
+            tmp_file.flush()
+            tmp_file_path = tmp_file.name
 
         CLIENT = InferenceHTTPClient(
             api_url="https://serverless.roboflow.com",
             api_key=ROBOFLOW_API_KEY
         )
 
-        result = CLIENT.infer(mosaic_bytes.getvalue(), model_id=MODEL_ID)
+        result = CLIENT.infer(tmp_file_path, model_id=MODEL_ID)
         predictions = result.get("predictions", [])
 
         # Overlay detections on the image using PIL
@@ -179,5 +182,4 @@ if st.button("Download Map and Detect Buildings"):
 
     except Exception as e:
         st.error(f"An unexpected error occurred: {e}")
-        import traceback
-        st.text(traceback.format_exc())
+        import
