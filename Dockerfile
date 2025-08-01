@@ -1,10 +1,11 @@
 # Use official Python image (3.10 or 3.11 is safest; avoid 3.13 for now)
 FROM python:3.11-slim
 
-# Install system dependencies
+# Install system dependencies, including libglib2.0-0 for OpenCV
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     libgl1 \
+    libglib2.0-0 \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
