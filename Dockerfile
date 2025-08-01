@@ -28,4 +28,4 @@ EXPOSE 8080
 ENV STREAMLIT_BROWSER_GATHER_USAGE_STATS=false
 
 # Set Streamlit to listen on all interfaces and Cloud Run port
-CMD ["streamlit", "run", "app.py", "--server.port=8080", "--server.address=
+CMD ["streamlit", "run", "app.py", "--server.port=8080", "--server.address=0.0.0.0"]
